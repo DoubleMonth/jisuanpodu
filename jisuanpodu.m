@@ -11,7 +11,9 @@
 %% 修改时间：2019-5-16
 clear           %% 清除工作空间中的所有变量。
 clc
+samplingTime = 10; %%采样时间
 path = pwd;
+
 dirOutput = dir(fullfile(path,'*.xlsx'));
 fileName = {dirOutput.name};
 xlsPositive = cell(length(fileName),1);
@@ -27,14 +29,13 @@ xlsPositive = cell(length(fileName),1);
 % [n m] = size(filenames);%获得大小
 fileName
 disp('正在处理数据，请稍候........');
-filename='LDYECS744J0008255_20190516142054.xlsx';%%输入数据表格的名称
+% filename='LDYECS744J0008255_20190516142054.xlsx';%%输入数据表格的名称
+filename=fileName{1,1};%%输入数据表格的名称
 [excelData,str] = xlsread(fileName{1,1},1);               %读取原始数据表中的数据：str为数据表中的字符，data为数据表中的数据
 [excelRow,excelColumn] = size(excelData);        %%获取数据表中的行列个数
 value =  zeros(excelRow,4);                      %建立一个相应行数，1列的矩阵用于存储计算后的数据
 invalidDataNum = zeros(1,4);                     %记录数据表前面无效数据的个数。
 [m,n] = size(str);                              %% 数据表中字符的个数
-m
-excelRow
 needStr = {'车速','累计里程','GPS车速','GPS里程','GPS海拔'}; %% 计算坡度需要的数据项
 needStrStationIn_value = zeros(1,5);                        %% 各数据项在原始数据表中的位置
 
@@ -61,7 +62,7 @@ for row_x = 1: excelRow - 1
         if invalidDataNum(1,1) == 0                                        
             invalidDataNum(1,1) = row_x;                                  %还没有记录无效数据时记录下无效数据的个数
         end     
-        mid_value_2 = asind(gpsElevationDiffe/(speedSum/2*5/3600*1000)); 
+        mid_value_2 = asind(gpsElevationDiffe/(speedSum/2*samplingTime/3600*1000)); 
         if isreal(mid_value_2)                                              
             podu =  tand(mid_value_2);
             value(row_x,1) = podu;                                       %写入矩阵中
@@ -103,7 +104,7 @@ for row_x = 1: excelRow - 1
         if invalidDataNum(1,3) == 0                                         % 还没有记录无效数据个数时无效数据的位置填充0
             invalidDataNum(1,3) = row_x;
         end
-        mid_value_2 = asind(gpsElevationDiffe/(gpsSpeedSum/2*5/3600*1000)); 
+        mid_value_2 = asind(gpsElevationDiffe/(gpsSpeedSum/2*samplingTime/3600*1000)); %% 注意修改采样时间
         if isreal(mid_value_2)                                              %%出现复数时认为数据出错，使用上一个数据填充
             podu =  tand(mid_value_2);
             value(row_x,3) = podu;                                        %写入矩阵中
@@ -126,8 +127,8 @@ for row_x = 1: excelRow - 1
         if invalidDataNum(1,4) == 0                                        % 还没有记录无效数据个数时无效数据的位置填充0
             invalidDataNum(1,4) = row_x;
         end
-        mid_value_2 = gpsElevationDiffe/gpsMileageDiffe/1000; 
-            podu =  tan(mid_value_2);
+        mid_value_2 = asind(gpsElevationDiffe/gpsMileageDiffe/1000); 
+            podu =  tand(mid_value_2);
             value(row_x,4) = podu;                                        %写入矩阵中
     end
 end
@@ -139,28 +140,35 @@ for i = 1:4
         end
     end
 end
-%% 如果以前存在podu文件，先删除
-if exist('podu.xls')   
-    delete('podu.xls');
+i = find('.'==filename);
+imname = filename(1:i-1); %% imname为不带后缀文件名称 
+outFile = strcat(imname,'_output');
+if exist(outFile)   %% 如果存在output文件夹，先删除
+     rmdir (outFile,'s');
 end
+mkdir(outFile);%% 创建一个Output文件夹
+cd(fullfile(path,outFile));       %%进入output目录
+poduFile = strcat(imname,'_podu.xls'); %%组成带excle文件名的podu文件名
 value_2 = value(max(invalidDataNum(:)):excelRow,1:4);                               %%取出矩阵中有效数据，丢弃无效数据
-colname={'时间','仪表车速计算坡度','累计里程计算坡度','GPS车速计算坡度','GPS里程计算坡度'};    %%增加每一列的数据名称
-xlswrite('podu.xls', colname, 'sheet1','A1');
-xlswrite('podu.xls',str(max(invalidDataNum(:))+1:m,1), 'sheet1','A2');
-xlswrite('podu.xls',value_2, 'sheet1','B2');
+colname={'序号','时间','仪表车速计算坡度','累计里程计算坡度','GPS车速计算坡度','GPS里程计算坡度'};    %%增加每一列的数据名称
+xlswrite(poduFile, colname, 'sheet1','A1');
+xuhao = linspace(1,m-max(invalidDataNum(:)),m-max(invalidDataNum(:)));
+xlswrite(poduFile, xuhao', 'sheet1','A2');                %%序号
+xlswrite(poduFile,str(max(invalidDataNum(:))+1:m,1), 'sheet1','B2');              %%时间
+xlswrite(poduFile,value_2, 'sheet1','C2');                    %%计算后的数据
 %% 将计算需要的数据拷贝一份放入Sheet2中，以备手动计算时使用。
-xlswrite('podu.xls',str(:,1), 'sheet2','A1');
-xlswrite('podu.xls',needStr, 'sheet2','B1');
-xlswrite('podu.xls',excelData(:,needStrStationIn_value(1,1)), 'sheet2','B2');
-xlswrite('podu.xls',excelData(:,needStrStationIn_value(1,2)), 'sheet2','C2');
-xlswrite('podu.xls',excelData(:,needStrStationIn_value(1,3)), 'sheet2','D2');
-xlswrite('podu.xls',excelData(:,needStrStationIn_value(1,4)), 'sheet2','E2');
-xlswrite('podu.xls',excelData(:,needStrStationIn_value(1,5)), 'sheet2','F2');
-colname2={'=TAN(ASIN((F3-F2)/((B2+B3)/2*5/3600*1000)))','=TAN(ASIN((F3-F2)/(C3-C2)/1000))','=TAN(ASIN((F3-F2)/((D3+D2)/2*5/3600*1000)))','=TAN((F3-F2)/(E3-E2)/1000)'};
-xlswrite('podu.xls',colname2, 'sheet2','G2');
+xlswrite(poduFile,str(:,1), 'sheet2','A1');
+xlswrite(poduFile,needStr, 'sheet2','B1');
+xlswrite(poduFile,excelData(:,needStrStationIn_value(1,1)), 'sheet2','B2');
+xlswrite(poduFile,excelData(:,needStrStationIn_value(1,2)), 'sheet2','C2');
+xlswrite(poduFile,excelData(:,needStrStationIn_value(1,3)), 'sheet2','D2');
+xlswrite(poduFile,excelData(:,needStrStationIn_value(1,4)), 'sheet2','E2');
+xlswrite(poduFile,excelData(:,needStrStationIn_value(1,5)), 'sheet2','F2');
+colname2={'=TAN(ASIN((F3-F2)/((B2+B3)/2*5/3600*1000)))','=TAN(ASIN((F3-F2)/(C3-C2)/1000))','=TAN(ASIN((F3-F2)/((D3+D2)/2*5/3600*1000)))','=TAN(ASIN((F3-F2)/(E3-E2)/1000))'};
+xlswrite(poduFile,colname2, 'sheet2','G2');
 %% Sheet重命名
 path = pwd;
-filePath = fullfile(path,'podu.xls');
+filePath = fullfile(path,poduFile);
 e = actxserver('Excel.Application');
 ewb = e.workbooks.Open(filePath);
 ewb.Worksheets.Item(1).Name = '计算的坡度';
@@ -168,6 +176,34 @@ ewb.Worksheets.Item(2).Name = '计算坡度使用的数据';
 ewb.Save 
 ewb.Close(false)
 e.Quit
+%% 显示折线图
+plot(xuhao',value_2(:,1),'y-');
+hold on;
+plot(xuhao',value_2(:,2),'b-');
+hold on;
+plot(xuhao',value_2(:,3),'g-');
+hold on;
+plot(xuhao',value_2(:,4),'r-');
+hold on;
+grid on;%%显示风格线
+legend('仪表车速计算坡度','累计里程计算坡度','GPS车速计算坡度','GPS里程计算坡度');
+titleFile = strcat(imname,'计算坡度'); %%组成带excle文件名的podu文件名
+title(titleFile);
+xlabel('时间顺序');
+ylabel('坡度');
+%% 保存生成的折线图  先删除以前存在的图片
+pngFile = strcat(imname,'_tupian.png'); %%组成带excle文件名的podu文件名
+figFile = strcat(imname,'_tupian.fig'); %%组成带excle文件名的podu文件名
+% if exist('tupian.png')   
+%     delete('tupian.png');
+% end
+% if exist('tupian.fig')   
+%     delete('tupian.fig');
+% end
+saveas(gcf,pngFile);
+saveas(gcf,figFile);
 %% 数据处理完毕，输出提示信息
-disp('数据处理完毕，请查看当前文件夹下的podu.xls文件');
-filePath %% 文件所在位置
+disp('数据处理完毕，请查看当前文件夹下的');
+disp(poduFile);
+filePath    %% 文件所在位置
+cd ..       %%退出output目录
