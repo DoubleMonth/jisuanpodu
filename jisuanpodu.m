@@ -1,5 +1,5 @@
 %% 功能：使用远程监控收集的数据计算坡度
-%% 将本文件与需要处理的文件放在同一个文件夹下，将从远程监控系统导出的数据打开后另存为.xlsx格式
+%% 将本文件与需要处理的文件放在同一个文件夹下，将从远程监控系统导出的数据打开后另存为.xlsx格式，删除其他的excel文件。
 %% --因为导出的数据为文本格式的excel文件，MATLAB处理时会出错。
 %% 修改filename的文件名为数据的文件名
 %% 如果不需要过滤数据，请注释掉滤波算法部分，如果需要过滤的数据不是0.2，请在滤波算法中修改相应数据
@@ -11,13 +11,30 @@
 %% 修改时间：2019-5-16
 clear           %% 清除工作空间中的所有变量。
 clc
+path = pwd;
+dirOutput = dir(fullfile(path,'*.xlsx'));
+fileName = {dirOutput.name};
+xlsPositive = cell(length(fileName),1);
+% for k = 1:length(fileName)
+%     xlsPositive{k} = imread([positiveFolder fileName{k}]);
+% end
+
+%%directory = uigetdir(fileFolder);
+% dirs=dir(fileFolder);%dirs结构体类型,不仅包括文件名，还包含文件其他信息。
+% dircell=struct2cell(dirs)'; %类型转化，转化为元组类型
+% filenames=dircell(:,1) ;%文件类型存放在第一列
+% %然后根据后缀名筛选出指定类型文件并读入
+% [n m] = size(filenames);%获得大小
+fileName
 disp('正在处理数据，请稍候........');
 filename='LDYECS744J0008255_20190516142054.xlsx';%%输入数据表格的名称
-[excelData,str] = xlsread(filename,1);               %读取原始数据表中的数据：str为数据表中的字符，data为数据表中的数据
+[excelData,str] = xlsread(fileName{1,1},1);               %读取原始数据表中的数据：str为数据表中的字符，data为数据表中的数据
 [excelRow,excelColumn] = size(excelData);        %%获取数据表中的行列个数
 value =  zeros(excelRow,4);                      %建立一个相应行数，1列的矩阵用于存储计算后的数据
 invalidDataNum = zeros(1,4);                     %记录数据表前面无效数据的个数。
 [m,n] = size(str);                              %% 数据表中字符的个数
+m
+excelRow
 needStr = {'车速','累计里程','GPS车速','GPS里程','GPS海拔'}; %% 计算坡度需要的数据项
 needStrStationIn_value = zeros(1,5);                        %% 各数据项在原始数据表中的位置
 
@@ -127,9 +144,10 @@ if exist('podu.xls')
     delete('podu.xls');
 end
 value_2 = value(max(invalidDataNum(:)):excelRow,1:4);                               %%取出矩阵中有效数据，丢弃无效数据
-colname={'仪表车速计算坡度','累计里程计算坡度','GPS车速计算坡度','GPS里程计算坡度'};    %%增加每一列的数据名称
+colname={'时间','仪表车速计算坡度','累计里程计算坡度','GPS车速计算坡度','GPS里程计算坡度'};    %%增加每一列的数据名称
 xlswrite('podu.xls', colname, 'sheet1','A1');
-xlswrite('podu.xls',value_2, 'sheet1','A2');
+xlswrite('podu.xls',str(max(invalidDataNum(:))+1:m,1), 'sheet1','A2');
+xlswrite('podu.xls',value_2, 'sheet1','B2');
 %% 将计算需要的数据拷贝一份放入Sheet2中，以备手动计算时使用。
 xlswrite('podu.xls',str(:,1), 'sheet2','A1');
 xlswrite('podu.xls',needStr, 'sheet2','B1');
@@ -138,7 +156,9 @@ xlswrite('podu.xls',excelData(:,needStrStationIn_value(1,2)), 'sheet2','C2');
 xlswrite('podu.xls',excelData(:,needStrStationIn_value(1,3)), 'sheet2','D2');
 xlswrite('podu.xls',excelData(:,needStrStationIn_value(1,4)), 'sheet2','E2');
 xlswrite('podu.xls',excelData(:,needStrStationIn_value(1,5)), 'sheet2','F2');
-%% Sheet重命令
+colname2={'=TAN(ASIN((F3-F2)/((B2+B3)/2*5/3600*1000)))','=TAN(ASIN((F3-F2)/(C3-C2)/1000))','=TAN(ASIN((F3-F2)/((D3+D2)/2*5/3600*1000)))','=TAN((F3-F2)/(E3-E2)/1000)'};
+xlswrite('podu.xls',colname2, 'sheet2','G2');
+%% Sheet重命名
 path = pwd;
 filePath = fullfile(path,'podu.xls');
 e = actxserver('Excel.Application');
