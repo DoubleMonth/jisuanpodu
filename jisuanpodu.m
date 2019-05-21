@@ -164,7 +164,7 @@ xlswrite(poduFile,excelData(:,needStrStationIn_value(1,2)), 'sheet2','C2');
 xlswrite(poduFile,excelData(:,needStrStationIn_value(1,3)), 'sheet2','D2');
 xlswrite(poduFile,excelData(:,needStrStationIn_value(1,4)), 'sheet2','E2');
 xlswrite(poduFile,excelData(:,needStrStationIn_value(1,5)), 'sheet2','F2');
-colname2={'=TAN(ASIN((F3-F2)/((B2+B3)/2*5/3600*1000)))','=TAN(ASIN((F3-F2)/(C3-C2)/1000))','=TAN(ASIN((F3-F2)/((D3+D2)/2*5/3600*1000)))','=TAN(ASIN((F3-F2)/(E3-E2)/1000))'};
+colname2={'=TAN(ASIN((F3-F2)/((B2+B3)/2*10/3600*1000)))','=TAN(ASIN((F3-F2)/(C3-C2)/1000))','=TAN(ASIN((F3-F2)/((D3+D2)/2*10/3600*1000)))','=TAN(ASIN((F3-F2)/(E3-E2)/1000))'};
 xlswrite(poduFile,colname2, 'sheet2','G2');
 %% Sheet重命名
 path = pwd;
@@ -185,7 +185,7 @@ plot(xuhao',value_2(:,3),'g-');
 hold on;
 plot(xuhao',value_2(:,4),'r-');
 hold on;
-grid on;%%显示风格线
+grid on;%%显示网格线
 legend('仪表车速计算坡度','累计里程计算坡度','GPS车速计算坡度','GPS里程计算坡度');
 titleFile = strcat(imname,'计算坡度'); %%组成带excle文件名的podu文件名
 title(titleFile);
