@@ -25,3 +25,4 @@ for i=1:length(fileName)
     filename=fileName{1,i};%%输入数据表格的名称
     f_calculateGradient(filename);
 end
+system('taskkill /F /IM EXCEL.EXE');% 结束excel进程

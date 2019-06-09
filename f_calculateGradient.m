@@ -152,7 +152,9 @@ ewb.Worksheets.Item(2).Name = '计算坡度使用的数据';
 ewb.Save 
 ewb.Close(false)
 e.Quit
-%% 显示折线图
+%% 绘制折线图
+fh=figure;
+set(fh,'visible','off');    %% 绘制折线时不显示figure窗口
 plot(xuhao',value_2(:,1),'y-');
 hold on;
 plot(xuhao',value_2(:,2),'b-');
@@ -167,6 +169,51 @@ titleFile = strcat(imname,'计算坡度'); %%组成带excle文件名的podu文件名
 title(titleFile);
 xlabel('时间顺序');
 ylabel('坡度');
+
+%% 将折线图插入EXCE中
+print -dbitmap
+spwd = [pwd '\'];
+filespec_user=[spwd poduFile];
+try
+Excel=actxGetRunningServer('Excel.Application');
+catch
+Excel = actxserver('Excel.Application');
+end;
+%设置Excel属性为可见
+set(Excel, 'Visible', 0);
+Workbooks = Excel.Workbooks;
+%若测试文件存在，打开该测试文件，否则，新建一个工作簿，并保存，文件名为测试.Excel
+if exist(filespec_user,'file');
+Workbook = invoke(Workbooks,'Open',filespec_user);
+else
+Workbook = invoke(Workbooks, 'Add');
+Workbook.SaveAs(filespec_user);
+end
+%返回工作表句柄
+Sheets = Excel.ActiveWorkBook.Sheets;
+%返回第一个表格句柄
+sheet1 = get(Sheets, 'Item', 1);
+%激活第一个表格
+invoke(sheet1, 'Activate');
+%如果当前工作表中有图形存在，通过循环将图形全部删除
+Shapes=Excel.ActiveSheet.Shapes;
+if Shapes.Count~=0;
+for i=1:Shapes.Count;
+Shapes.Item(1).Delete;
+end;
+end;
+
+%将图形复制到粘贴板
+hgexport(fh, '-clipboard');
+%将图形粘贴到当前表格的A5:B5栏里
+Excel.ActiveSheet.Range('H5:I5').Select;
+Excel.ActiveSheet.Paste;
+%删除图形句柄
+
+Workbook.SaveAs(filespec_user);%% 保存文件
+delete(Workbook);
+
+
 %% 保存生成的折线图  先删除以前存在的图片
 pngFile = strcat(imname,'_tupian.png'); %%组成带excle文件名的podu文件名
 figFile = strcat(imname,'_tupian.fig'); %%组成带excle文件名的podu文件名
@@ -178,6 +225,7 @@ figFile = strcat(imname,'_tupian.fig'); %%组成带excle文件名的podu文件名
 % end
 saveas(gcf,pngFile);
 saveas(gcf,figFile);
+delete(fh);
 %% 数据处理完毕，输出提示信息
 disp('数据处理完毕，请查看当前文件夹下的');
 disp(poduFile);
