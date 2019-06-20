@@ -1,7 +1,7 @@
 function  f_calculateGradient( r_fileName )
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
-samplingTime = 10; %%采样时间
+samplingTime = 5; %%采样时间
 path = pwd;
 %% 输出提示信息
 disp(strcat('正在处理',r_fileName));
@@ -40,8 +40,8 @@ for row_x = 1: excelRow - 1
         end     
         mid_value_2 = asind(gpsElevationDiffe/(speedSum/2*samplingTime/3600*1000)); 
         if isreal(mid_value_2)                                              
-            podu =  tand(mid_value_2);
-            value(row_x,1) = podu;                                       %写入矩阵中
+            podu = tand(mid_value_2);
+            value(row_x,1) = podu *100;                                       %写入矩阵中
         else
             value(row_x,1) = value(row_x-1,1);                         %%出现复数时认为数据出错，使用上一个数据填充
         end
@@ -63,7 +63,7 @@ for row_x = 1: excelRow - 1
         end
         mid_value_2 = asind(gpsElevationDiffe/accumulativeMileageDiffe/1000); 
             podu =  tand(mid_value_2);
-            value(row_x,2) = podu;                                         %写入矩阵中
+            value(row_x,2) = podu*100;                                         %写入矩阵中
     end
 end
 %% GPS车速计算坡度
@@ -83,7 +83,7 @@ for row_x = 1: excelRow - 1
         mid_value_2 = asind(gpsElevationDiffe/(gpsSpeedSum/2*samplingTime/3600*1000)); %% 注意修改采样时间
         if isreal(mid_value_2)                                              %%出现复数时认为数据出错，使用上一个数据填充
             podu =  tand(mid_value_2);
-            value(row_x,3) = podu;                                        %写入矩阵中
+            value(row_x,3) = podu*100;                                        %写入矩阵中
         else
             value(row_x,3) = value(row_x-1,3);
         end
@@ -104,14 +104,14 @@ for row_x = 1: excelRow - 1
             invalidDataNum(1,4) = row_x;
         end
         mid_value_2 = asind(gpsElevationDiffe/gpsMileageDiffe/1000); 
-            podu =  tand(mid_value_2);
-            value(row_x,4) = podu;                                        %写入矩阵中
+            podu = tand(mid_value_2);
+            value(row_x,4) = podu*100;                                        %写入矩阵中
     end
 end
 %% 滤波算法--去除>0.2和<-0.2的数据，用上一个数据填充
 for i = 1:4
     for j = 2:excelRow
-        if value(j,i)>0.2||value(j,i)<-0.2
+        if value(j,i)>20||value(j,i)<-20
             value(j,i) = value(j-1,i);
         end
     end
@@ -127,6 +127,7 @@ cd(fullfile(path,outFile));       %%进入output目录
 poduFile = strcat(imname,'_podu.xls'); %%组成带excle文件名的podu文件名
 value_2 = value(max(invalidDataNum(:)):excelRow,1:4);                               %%取出矩阵中有效数据，丢弃无效数据
 colname={'序号','时间','仪表车速计算坡度','累计里程计算坡度','GPS车速计算坡度','GPS里程计算坡度'};    %%增加每一列的数据名称
+warning off MATLAB:xlswrite:AddSheet;   %%防止出现warning警告 
 xlswrite(poduFile, colname, 'sheet1','A1');
 xuhao = linspace(1,m-max(invalidDataNum(:)),m-max(invalidDataNum(:)));
 xlswrite(poduFile, xuhao', 'sheet1','A2');                %%序号
@@ -142,6 +143,7 @@ xlswrite(poduFile,excelData(:,needStrStationIn_value(1,4)), 'sheet2','E2');
 xlswrite(poduFile,excelData(:,needStrStationIn_value(1,5)), 'sheet2','F2');
 colname2={'=TAN(ASIN((F3-F2)/((B2+B3)/2*10/3600*1000)))','=TAN(ASIN((F3-F2)/(C3-C2)/1000))','=TAN(ASIN((F3-F2)/((D3+D2)/2*10/3600*1000)))','=TAN(ASIN((F3-F2)/(E3-E2)/1000))'};
 xlswrite(poduFile,colname2, 'sheet2','G2');
+
 %% Sheet重命名
 path = pwd;
 filePath = fullfile(path,poduFile);
@@ -152,6 +154,7 @@ ewb.Worksheets.Item(2).Name = '计算坡度使用的数据';
 ewb.Save 
 ewb.Close(false)
 e.Quit
+
 %% 绘制折线图
 fh=figure;
 set(fh,'visible','off');    %% 绘制折线时不显示figure窗口
@@ -209,10 +212,10 @@ hgexport(fh, '-clipboard');
 Excel.ActiveSheet.Range('H5:I5').Select;
 Excel.ActiveSheet.Paste;
 %删除图形句柄
-
-Workbook.SaveAs(filespec_user);%% 保存文件
+% 
+Workbook.Save();%% 保存文件
+% Workbook.SaveAs(filespec_user);%% 保存文件
 delete(Workbook);
-
 
 %% 保存生成的折线图  先删除以前存在的图片
 pngFile = strcat(imname,'_tupian.png'); %%组成带excle文件名的podu文件名

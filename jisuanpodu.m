@@ -12,7 +12,7 @@
 clear           %% 清除工作空间中的所有变量。
 clc
 path = pwd;
-dirOutput = dir(fullfile(path,'*.xlsx'));
+dirOutput = dir(fullfile(path,'*.xls'));
 fileName = {dirOutput.name};
 %% 提示需要处理的文件
 fprintf('共找到%d个文件需要处理分别是：',length(fileName));
